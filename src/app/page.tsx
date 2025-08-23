@@ -29,8 +29,12 @@ export default function Home() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = (await res.json()) as ApiResp;
       setData(json);
-    } catch (e: any) {
-      setErr(e?.message ?? "unknown error");
+    } catch (e: unknown) {
+      const msg =
+        e instanceof Error ? e.message :
+        typeof e === "string" ? e :
+        JSON.stringify(e);
+      setErr(String(msg));
     } finally {
       setLoading(false);
     }
