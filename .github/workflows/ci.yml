@@ -13,13 +13,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'pnpm'   # pnpm のロックファイルでキャッシュ
+          cache: 'pnpm'
 
-      # ここで pnpm を入れる（corepack だけじゃ runner では足りない）
+      # ここで pnpm をインストール（これが無いと今回のようにコケる）
       - uses: pnpm/action-setup@v4
         with:
           version: 10.15.0
           run_install: false
+
+      # 念のため corepack も有効化（不要でも害はない）
+      - run: corepack enable
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm run lint || true
