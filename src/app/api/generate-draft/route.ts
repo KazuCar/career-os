@@ -1,4 +1,6 @@
+
 type Draft = { summary: string; jobSummary: string; bullets: string[]; skills: string[] };
+
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({} as any));
   const text: string = body?.text ?? "";
