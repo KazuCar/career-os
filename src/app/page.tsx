@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Draft = {
   summary: string;
@@ -10,11 +10,68 @@ type Draft = {
 };
 type ApiResp = { ok: boolean; inputPreview: string; draft: Draft };
 
+type SavedItem = { id: string; text: string; draft: Draft; createdAt: string };
+const STORAGE_KEY = "career-os:saved";
+
+function toMarkdown(d: Draft): string {
+  return [
+    "# ドラフト（プレビュー）",
+    "",
+    `**総括**: ${d.summary}`,
+    "",
+    `**職務サマリ**: ${d.jobSummary}`,
+    "",
+    "**実績**",
+    ...d.bullets.map((b) => `- ${b}`),
+    "",
+    `**スキル**: ${d.skills.join(", ")}`,
+    "",
+  ].join("\n");
+}
+
+async function copyToClipboard(text: string) {
+  await navigator.clipboard.writeText(text);
+}
+
+function downloadMarkdown(filename: string, content: string) {
+  const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function getSaved(): SavedItem[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as SavedItem[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveItem(text: string, draft: Draft): SavedItem {
+  const id = globalThis.crypto?.randomUUID?.() ? crypto.randomUUID() : String(Date.now());
+  const item: SavedItem = { id, text, draft, createdAt: new Date().toISOString() };
+  const next = [item, ...getSaved()].slice(0, 50);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  return item;
+}
+
 export default function Home() {
   const [text, setText] = useState("");
   const [data, setData] = useState<ApiResp | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState<SavedItem[]>([]);
+
+  useEffect(() => {
+    setSaved(getSaved());
+  }, []);
 
   async function handleGenerate() {
     setErr(null);
@@ -78,6 +135,53 @@ export default function Home() {
             ))}
           </ul>
           <p><strong>スキル:</strong> {data.draft.skills.join(", ")}</p>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+            <button onClick={() => copyToClipboard(toMarkdown(data.draft))}>
+              コピー（Markdown）
+            </button>
+            <button onClick={() => downloadMarkdown("career-os-draft.md", toMarkdown(data.draft))}>
+              ダウンロード(.md)
+            </button>
+            <button
+              onClick={() => {
+                saveItem(text, data.draft);
+                setSaved(getSaved());
+                alert("保存しました（ブラウザ内）");
+              }}
+            >
+              保存（ブラウザ）
+            </button>
+          </div>
+        </section>
+      )}
+
+      {saved.length > 0 && (
+        <section style={{ marginTop: 32 }}>
+          <h3>最近の保存（ブラウザ）</h3>
+          <ol>
+            {saved.slice(0, 5).map((s) => (
+              <li key={s.id} style={{ marginBottom: 8 }}>
+                <time dateTime={s.createdAt}>
+                  {new Date(s.createdAt).toLocaleString()}
+                </time>
+                {" ｜ "}
+                <button onClick={() => setData({ ok: true, inputPreview: s.text, draft: s.draft })}>
+                  ひらく
+                </button>
+                {" ｜ "}
+                <button
+                  onClick={() => {
+                    const rest = getSaved().filter((x) => x.id !== s.id);
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
+                    setSaved(rest);
+                  }}
+                >
+                  削除
+                </button>
+              </li>
+            ))}
+          </ol>
         </section>
       )}
     </main>
