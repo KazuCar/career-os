@@ -107,4 +107,113 @@ export default function Home() {
         <div>自己PRにしたい素材（箇条書きでOK）</div>
         <textarea
           value={text}
-          onChange={(e) => setText(e.target.va
+          onChange={(e) => setText(e.target.value)}
+          rows={8}
+          style={{ width: "100%", fontFamily: "inherit" }}
+          placeholder="例）SaaS CSで解約率1.2pt改善、オンボ工数30%削減 など"
+        />
+      </label>
+
+      <button
+        onClick={handleGenerate}
+        disabled={loading || !text.trim()}
+        aria-busy={loading}
+        style={{ marginTop: 12, padding: "8px 16px", opacity: loading || !text.trim() ? 0.6 : 1 }}
+      >
+        {loading ? "作成中..." : "ドラフトを作成"}
+      </button>
+
+      {err && <p style={{ color: "crimson" }}>Error: {err}</p>}
+
+      {data && (
+        <section style={{ marginTop: 24 }}>
+          <h2>ドラフト（プレビュー）</h2>
+          <p><strong>総括:</strong> {data.draft.summary}</p>
+          <p><strong>職務サマリ:</strong> {data.draft.jobSummary}</p>
+          <p><strong>実績:</strong></p>
+          <ul>{data.draft.bullets.map((b, i) => <li key={i}>{b}</li>)}</ul>
+          <p><strong>スキル:</strong> {data.draft.skills.join(", ")}</p>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+            <button
+              onClick={async () => {
+                await copyToClipboard(toMarkdown(data.draft));
+                showToast("コピーしました", "ok");
+              }}
+              title="Markdownをコピー"
+            >
+              コピー（Markdown）
+            </button>
+            <button
+              onClick={() => {
+                downloadMarkdown("career-os-draft.md", toMarkdown(data.draft));
+                showToast("ダウンロード開始", "ok");
+              }}
+              title="Markdownで保存"
+            >
+              ダウンロード(.md)
+            </button>
+            <button
+              onClick={() => {
+                saveItem(text, data.draft);
+                setSaved(getSaved());
+                showToast("保存しました（ブラウザ）", "ok");
+              }}
+              title="このドラフトをブラウザに保存"
+            >
+              保存（ブラウザ）
+            </button>
+          </div>
+        </section>
+      )}
+
+      {saved.length > 0 && (
+        <section style={{ marginTop: 32 }}>
+          <h3>最近の保存（ブラウザ）</h3>
+          <ol>
+            {saved.slice(0, 5).map((s) => (
+              <li key={s.id} style={{ marginBottom: 8 }}>
+                <time dateTime={s.createdAt}>{new Date(s.createdAt).toLocaleString()}</time>
+                {" ｜ "}
+                <button onClick={() => setData({ ok: true, inputPreview: s.text, draft: s.draft })}>
+                  ひらく
+                </button>
+                {" ｜ "}
+                <button
+                  onClick={() => {
+                    const rest = getSaved().filter((x) => x.id !== s.id);
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
+                    setSaved(rest);
+                    showToast("削除しました", "ok");
+                  }}
+                >
+                  削除
+                </button>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {/* toast */}
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: "fixed",
+            right: 16,
+            bottom: 16,
+            background: toast.kind === "ok" ? "#222" : "#8b0000",
+            color: "#fff",
+            padding: "10px 14px",
+            borderRadius: 8,
+            boxShadow: "0 4px 12px rgba(0,0,0,.25)",
+          }}
+        >
+          {toast.msg}
+        </div>
+      )}
+    </main>
+  );
+}
