@@ -12,7 +12,7 @@ function errMsg(e: unknown) {
   return e instanceof Error ? e.message : String(e);
 }
 
-export default function EntriesWidget() {
+export default function EntriesPage() {
   const [items, setItems] = useState<Entry[]>([]);
   const [title, setTitle] = useState('');
   const [markdown, setMarkdown] = useState('');
@@ -50,7 +50,9 @@ export default function EntriesWidget() {
   }
 
   return (
-    <section style={{ display: 'grid', gap: '0.75rem' }}>
+    <main style={{ maxWidth: 840, margin: '2rem auto', padding: '0 1rem' }}>
+      <h1 style={{ marginBottom: '1rem' }}>Entries</h1>
+
       <form onSubmit={onSubmit} style={{ display: 'grid', gap: '0.5rem', marginBottom: '1.25rem' }}>
         <label>
           <div style={{ fontSize: 12, opacity: 0.8 }}>タイトル（任意）</div>
@@ -93,11 +95,11 @@ export default function EntriesWidget() {
             <div style={{ fontSize: 12, opacity: 0.7 }}>
               {new Date(it.created_at).toLocaleString()}
             </div>
-            <h3 style={{ margin: '0.25rem 0 0.5rem' }}>{it.title || '無題'}</h3>
+            <h2 style={{ margin: '0.25rem 0 0.5rem' }}>{it.title || '無題'}</h2>
             <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{it.markdown}</pre>
           </li>
         ))}
       </ul>
-    </section>
+    </main>
   );
 }
