@@ -1,5 +1,6 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
+import Link from "next/link";            // ← 追加
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -11,10 +12,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ja">
       <body>
-        {/* ← これが <body> 直下。ここにナビを入れる */}
+        {/* <body> 直下のナビ */}
         <nav style={{ padding: 12, background: "#fafafa" }}>
-          <a href="/" style={{ marginRight: 12 }}>Home</a>
-          <a href="/history">History</a>
+          <Link href="/" style={{ marginRight: 12 }}>Home</Link>
+          <Link href="/history">History</Link>
         </nav>
         {children}
       </body>
