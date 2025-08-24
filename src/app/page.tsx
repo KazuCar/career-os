@@ -2,17 +2,13 @@
 
 import { useEffect, useState } from "react";
 
-type Draft = {
-  summary: string;
-  jobSummary: string;
-  bullets: string[];
-  skills: string[];
-};
+type Draft = { summary: string; jobSummary: string; bullets: string[]; skills: string[] };
 type ApiResp = { ok: boolean; inputPreview: string; draft: Draft };
 
 type SavedItem = { id: string; text: string; draft: Draft; createdAt: string };
 const STORAGE_KEY = "career-os:saved";
 
+/* ---------- util ---------- */
 function toMarkdown(d: Draft): string {
   return [
     "# ドラフト（プレビュー）",
@@ -28,11 +24,9 @@ function toMarkdown(d: Draft): string {
     "",
   ].join("\n");
 }
-
 async function copyToClipboard(text: string) {
   await navigator.clipboard.writeText(text);
 }
-
 function downloadMarkdown(filename: string, content: string) {
   const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -42,7 +36,6 @@ function downloadMarkdown(filename: string, content: string) {
   a.click();
   URL.revokeObjectURL(url);
 }
-
 function getSaved(): SavedItem[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -53,7 +46,6 @@ function getSaved(): SavedItem[] {
     return [];
   }
 }
-
 function saveItem(text: string, draft: Draft): SavedItem {
   const id = globalThis.crypto?.randomUUID?.() ? crypto.randomUUID() : String(Date.now());
   const item: SavedItem = { id, text, draft, createdAt: new Date().toISOString() };
@@ -62,18 +54,28 @@ function saveItem(text: string, draft: Draft): SavedItem {
   return item;
 }
 
+/* ---------- toast ---------- */
+type Toast = { msg: string; kind: "ok" | "ng" } | null;
+
 export default function Home() {
   const [text, setText] = useState("");
   const [data, setData] = useState<ApiResp | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState<SavedItem[]>([]);
+  const [toast, setToast] = useState<Toast>(null);
 
   useEffect(() => {
     setSaved(getSaved());
   }, []);
 
+  function showToast(msg: string, kind: "ok" | "ng" = "ok") {
+    setToast({ msg, kind });
+    setTimeout(() => setToast(null), 1500);
+  }
+
   async function handleGenerate() {
+    if (loading) return; // 二重送信防止
     setErr(null);
     setLoading(true);
     setData(null);
@@ -86,12 +88,11 @@ export default function Home() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = (await res.json()) as ApiResp;
       setData(json);
+      showToast("作成完了", "ok");
     } catch (e: unknown) {
-      const msg =
-        e instanceof Error ? e.message :
-        typeof e === "string" ? e :
-        JSON.stringify(e);
+      const msg = e instanceof Error ? e.message : typeof e === "string" ? e : JSON.stringify(e);
       setErr(String(msg));
+      showToast("作成に失敗しました", "ng");
     } finally {
       setLoading(false);
     }
@@ -106,84 +107,4 @@ export default function Home() {
         <div>自己PRにしたい素材（箇条書きでOK）</div>
         <textarea
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={8}
-          style={{ width: "100%", fontFamily: "inherit" }}
-          placeholder="例）SaaS CSで解約率1.2pt改善、オンボ工数30%削減 など"
-        />
-      </label>
-
-      <button
-        onClick={handleGenerate}
-        disabled={loading || !text.trim()}
-        style={{ marginTop: 12, padding: "8px 16px" }}
-      >
-        {loading ? "作成中..." : "ドラフトを作成"}
-      </button>
-
-      {err && <p style={{ color: "crimson" }}>Error: {err}</p>}
-
-      {data && (
-        <section style={{ marginTop: 24 }}>
-          <h2>ドラフト（プレビュー）</h2>
-          <p><strong>総括:</strong> {data.draft.summary}</p>
-          <p><strong>職務サマリ:</strong> {data.draft.jobSummary}</p>
-          <p><strong>実績:</strong></p>
-          <ul>
-            {data.draft.bullets.map((b, i) => (
-              <li key={i}>{b}</li>
-            ))}
-          </ul>
-          <p><strong>スキル:</strong> {data.draft.skills.join(", ")}</p>
-
-          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-            <button onClick={() => copyToClipboard(toMarkdown(data.draft))}>
-              コピー（Markdown）
-            </button>
-            <button onClick={() => downloadMarkdown("career-os-draft.md", toMarkdown(data.draft))}>
-              ダウンロード(.md)
-            </button>
-            <button
-              onClick={() => {
-                saveItem(text, data.draft);
-                setSaved(getSaved());
-                alert("保存しました（ブラウザ内）");
-              }}
-            >
-              保存（ブラウザ）
-            </button>
-          </div>
-        </section>
-      )}
-
-      {saved.length > 0 && (
-        <section style={{ marginTop: 32 }}>
-          <h3>最近の保存（ブラウザ）</h3>
-          <ol>
-            {saved.slice(0, 5).map((s) => (
-              <li key={s.id} style={{ marginBottom: 8 }}>
-                <time dateTime={s.createdAt}>
-                  {new Date(s.createdAt).toLocaleString()}
-                </time>
-                {" ｜ "}
-                <button onClick={() => setData({ ok: true, inputPreview: s.text, draft: s.draft })}>
-                  ひらく
-                </button>
-                {" ｜ "}
-                <button
-                  onClick={() => {
-                    const rest = getSaved().filter((x) => x.id !== s.id);
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
-                    setSaved(rest);
-                  }}
-                >
-                  削除
-                </button>
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
-    </main>
-  );
-}
+          onChange={(e) => setText(e.target.va
