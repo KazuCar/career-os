@@ -16,6 +16,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <nav style={{ padding: 12, background: "#fafafa" }}>
           <Link href="/" style={{ marginRight: 12 }}>Home</Link>
           <Link href="/history">History</Link>
+          <Link href="/interview" style={{ marginRight: 12 }}>Interview</Link>
+          <Link href="/entries">Entries</Link>
         </nav>
         {children}
       </body>
