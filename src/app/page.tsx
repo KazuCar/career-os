@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 type Draft = { summary: string; jobSummary: string; bullets: string[]; skills: string[] };
 type ApiResp = { ok: boolean; inputPreview: string; draft: Draft };
@@ -64,6 +64,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState<SavedItem[]>([]);
   const [toast, setToast] = useState<Toast>(null);
+  const previewRef = useRef<HTMLDivElement | null>(null);
+
 
   useEffect(() => {
     setSaved(getSaved());
@@ -126,7 +128,7 @@ export default function Home() {
       {err && <p style={{ color: "crimson" }}>Error: {err}</p>}
 
       {data && (
-        <section style={{ marginTop: 24 }}>
+        <section ref={previewRef} style={{ marginTop: 24 }}>
           <h2>ドラフト（プレビュー）</h2>
           <p><strong>総括:</strong> {data.draft.summary}</p>
           <p><strong>職務サマリ:</strong> {data.draft.jobSummary}</p>
@@ -175,7 +177,14 @@ export default function Home() {
               <li key={s.id} style={{ marginBottom: 8 }}>
                 <time dateTime={s.createdAt}>{new Date(s.createdAt).toLocaleString()}</time>
                 {" ｜ "}
-                <button onClick={() => setData({ ok: true, inputPreview: s.text, draft: s.draft })}>
+                <button
+                  onClick={() => {
+                    setData({ ok: true, inputPreview: s.text, draft: s.draft });
+                    showToast("保存データを読み込みました","ok");
+                    // 状態反映後にプレビューへスクロール
+                    setTimeout(() => previewRef.current?.scrollIntoView({ behavior: "smooth"}), 0);
+                  }}
+                >
                   ひらく
                 </button>
                 {" ｜ "}
